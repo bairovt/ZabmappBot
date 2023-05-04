@@ -16,7 +16,7 @@ export interface IRecord {
 	_key?: string; // arangodb
 	mapp: TMapp;
 	truck: string;
-	infront: string;
+	// infront: string;
 	// phone: string;
 	tg_user_id: number;
 	tg_tel: string;
@@ -28,26 +28,42 @@ export interface IRecord {
 	exited_at?: Date;
 	finished_at?: Date;
 }
+export interface ITruck {
+	mapp: TMapp;
+	truck: string;
+}
 
 
 export class Record {
 	// static collection = db.collection('Records');
+	static async find(example: ITruck): Promise<IRecord> {
+		const record = await db
+			.query(
+				aql`
+		FOR rec IN Records
+		FILTER rec.mapp == ${example.mapp}
+		FILTER rec.truck == ${example.truck}
+		RETURN rec`
+			)
+			.then((cursor) => cursor.next());
+		return record;
+	}
 
 	static async create(recordData: IRecord): Promise<IRecord> {
-		const recordCollection = db.collection(recordData.mapp + 'Records');
+		const recordCollection = db.collection('Records');
 		const recordMeta = await recordCollection.save(recordData, { returnNew: true });
 		return recordMeta.new;
 	}
 
 	static async exit(record: IRecord): Promise<void> {
-		const recordCollection = db.collection(record.mapp + 'Records');
+		const recordCollection = db.collection('Records');
 		const archiveCollection = db.collection('ArchiveRecords');
 
 		// TODO: make in transaction https://arangodb.github.io/arangojs/8.2.1/classes/transaction.Transaction.html
 		await recordCollection.remove(record._id as string, {waitForSync: true});
 
-		const behindTruck = await Record.getBehindTruck(record.truck);
-		await recordCollection.update(behindTruck._id as string, { infront: record.infront, updated_at: record.exited_at}, { waitForSync: true });
+		// const behindTruck = await Record.getBehindTruck(record.truck);
+		// await recordCollection.update(behindTruck._id as string, { infront: record.infront, updated_at: record.exited_at}, { waitForSync: true });
 
 		record.status = 'EXITED';
 		record.exited_at = new Date();
@@ -57,7 +73,7 @@ export class Record {
 	}
 
 	static async finish(record: IRecord): Promise<void> {
-		const recordCollection = db.collection(record.mapp + 'Records');
+		const recordCollection = db.collection('Records');
 		const archiveCollection = db.collection('ArchiveRecords');
 		record.status = 'FINISHED';
 		record.finished_at = new Date();
@@ -78,29 +94,17 @@ export class Record {
 		return record;
 	}
 
-	static async findByTruck(numTruck: string): Promise<IRecord> {
-		const record = await db
-			.query(
-				aql`
-		FOR rec IN Records
-		FILTER rec.truck == ${numTruck}
-		RETURN rec`
-			)
-			.then((cursor) => cursor.next());
-		return record;
-	}
-
-	static async getBehindTruck(numTruck: string): Promise<IRecord> {
-		const record = await db
-			.query(
-				aql`
-		FOR rec IN Records
-		FILTER rec.infront == ${numTruck}
-		RETURN rec`
-			)
-			.then((cursor) => cursor.next());
-		return record;
-	}
+	// static async getBehindTruck(numTruck: string): Promise<IRecord> {
+	// 	const record = await db
+	// 		.query(
+	// 			aql`
+	// 	FOR rec IN Records
+	// 	FILTER rec.infront == ${numTruck}
+	// 	RETURN rec`
+	// 		)
+	// 		.then((cursor) => cursor.next());
+	// 	return record;
+	// }
 
 	static async getLast(mapp: TMapp): Promise<IRecord> {
 		const recordCollection = db.collection(mapp + 'Records');
@@ -117,7 +121,7 @@ export class Record {
 	}
 
 	static async getPosition(record: IRecord): Promise<number> {
-		const recordCollection = db.collection(record.mapp + 'Records');
+		// const recordCollection = db.collection(record.mapp + 'Records');
 		// LET recordId = "${record._id}"
 		const position = await db
 			.query(
@@ -125,7 +129,8 @@ export class Record {
 				LET recordDocument = DOCUMENT(${record._id})
 
 				LET position = (
-					FOR doc IN ${recordCollection}
+					FOR doc IN Records
+						FILTER doc.mapp == ${record.mapp}
 						FILTER doc.timestamp <= recordDocument.timestamp
 						COLLECT WITH COUNT INTO count
 						RETURN count

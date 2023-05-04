@@ -9,9 +9,13 @@ import {
 import { MyContext, initialSessionData } from './context';
 import { Router } from '@grammyjs/router';
 import { isNotModifiedError } from './utils';
-import txt from './txt';
+import {txt, truckExistsTxt} from './txt';
 import { getMappsKb, getRecordKb, confirmKB, confirmKBTxt } from './keyboards';
 import { InlineKeyboard } from 'grammy';
+// import {isArangoError} from 'arangojs';
+import { ArangoError } from "arangojs/error";
+import { IRecord, ITruck } from './models/Record';
+// import { truckExistsTxt } from './txt/dynamic';
 
 
 if (!conf.nodeEnv) throw new Error('NODE_ENV is not set');
@@ -39,10 +43,15 @@ bot.command('start', async (ctx) => {
 
 bot.command('enter', async (ctx) => {
 	await User.start(ctx, ctx.msg?.from as TUser);
-	// ctx.session.step = 'mapp';
-	await ctx.reply(txt.select_mapp, {
-		reply_markup: getMappsKb(),
-	});
+	ctx.session.record.mapp = 'Zab';
+	ctx.session.step = 'truck';
+	// await ctx.reply(txt.select_mapp, {
+	// 	reply_markup: getMappsKb(),
+	// });
+	// await ctx.editMessageText(`Выбран МАПП: ${Mapps[ctx.session.record.mapp]}`, {
+	// 	// reply_markup: { remove_keyboard: true },
+	// });
+	await ctx.reply(txt.set_truck, { reply_markup: {remove_keyboard: true}, parse_mode: 'HTML' });
 });
 
 bot.command('records', async (ctx) => {
@@ -73,18 +82,18 @@ bot.callbackQuery('closeHelpInfo', async (ctx) => {
 	await ctx.answerCallbackQuery();
 });
 
-bot.callbackQuery(/^mapp:([a-zA-Z_]+)$/, async (ctx) => {
-	const data = ctx.match;
-	//@ts-ignore
-	const mappKey = data[1];
-	// const mapp = Mapps[mappKey as TMapp];
-	ctx.session.record.mapp = mappKey as TMapp;
-	ctx.session.step = 'truck';
-	await ctx.editMessageText(`Выбран МАПП: ${Mapps[ctx.session.record.mapp]}`, {
-		// reply_markup: { remove_keyboard: true },
-	});
-	await ctx.reply(txt.set_truck, {});
-});
+// bot.callbackQuery(/^mapp:([a-zA-Z_]+)$/, async (ctx) => {
+// 	const data = ctx.match;
+// 	//@ts-ignore
+// 	const mappKey = data[1];
+// 	// const mapp = Mapps[mappKey as TMapp];
+// 	ctx.session.record.mapp = mappKey as TMapp;
+// 	ctx.session.step = 'truck';
+// 	await ctx.editMessageText(`Выбран МАПП: ${Mapps[ctx.session.record.mapp]}`, {
+// 		// reply_markup: { remove_keyboard: true },
+// 	});
+// 	await ctx.reply(txt.set_truck, {});
+// });
 
 const router = new Router<MyContext>((ctx) => ctx.session.step);
 
@@ -109,8 +118,30 @@ router.route('truck', async (ctx, next) => {
 	if (!ctx.from?.id || !ctx.message?.text) {
 		return await next();
 	}
-	// ctx.message.text validate valid truck number
-	ctx.session.record.truck = ctx.message.text;
+	// todo: validate valid truck number
+	let truckNumber = ctx.message.text.toLocaleUpperCase();
+	// check if truck number is valid by regex /^([АВЕКМНОРСТУХ]\d{3}[АВЕКМНОРСТУХ]{2})(\d{2,3})?$/
+	if (!/^[АВЕКМНОРСТУХ]\d{3}[АВЕКМНОРСТУХ]{2}\d{2,3}$/.test(truckNumber)) {
+		return await ctx.reply(txt.set_truck, { parse_mode: 'HTML' });
+	}
+	const truck: ITruck = {
+		mapp: ctx.session.record.mapp,
+		truck: truckNumber
+	};
+	const existingTruck = await Record.find(truck);
+	if (existingTruck) {
+		ctx.session.step = 'idle';
+		ctx.session.record.truck = '';
+
+		return await ctx.reply(
+			truckExistsTxt(existingTruck),
+			{
+				reply_markup: { remove_keyboard: true },
+				parse_mode: 'HTML'
+			}
+		);
+	}
+	ctx.session.record.truck = truck.truck;
 	const recordInfo = await checkRecordInfo(ctx);
 	if (!recordInfo) return;
 	// await ctx.reply(recordInfo, { reply_markup: confirmRecordKb, parse_mode: 'HTML' });
@@ -143,48 +174,78 @@ router.route('createRecord', async (ctx) => {
 	const userId = ctx.msg?.from?.id;
 	const contact = ctx.msg?.contact;
 	if (contact && contact.user_id !== userId) {
-		return ctx.reply('Ожидается Ваш telegram-контакт');
+		return await ctx.reply('Ожидается Ваш telegram-контакт');
 	}
 	const timestamp =  new Date();
 
-	const lastRecord = await Record.getLast(ctx.session.record.mapp);
+	// const lastRecord = await Record.getLast(ctx.session.record.mapp);
 
-	if (contact && userId) {
-		// todo транзакции
-		const record = await Record.create({
-			mapp: ctx.session.record.mapp,
-			truck: ctx.session.record.truck,
-			infront: lastRecord?.truck ?? '',
-			tg_user_id: userId,
-			tg_tel: contact.phone_number,
-			tg_contact: contact,
-			timestamp: Date.now(),
-			created_at: new Date(timestamp),
-			status: 'ENTERED'
-		});
-
-		await ctx.api.sendMessage(
-			conf.recordsChannel,
-			`Тягач № <b>${record.truck}</b> записан в очередь ${Mapps[record.mapp]}\n за № ${record.infront}`, // todo: enum Mapps
+	if (!(contact && userId)) {
+		return await ctx.reply(`Нажмите "${confirmKBTxt.CANCEL}" или "${confirmKBTxt.CREATERECORD}"`,
 			{
-				parse_mode: 'HTML',
-			}
-		);
-
-		await ctx.reply(
-			`Тягач № <b>${record.truck}</b> записан в очередь ${Mapps[record.mapp]}\n за № ${record.infront}`,
-			{
-				reply_markup: { remove_keyboard: true },
+				reply_markup: {
+					keyboard: confirmKB.build(),
+					resize_keyboard: true,
+					// input_field_placehoder: 'Send LEFT or RIGHT', // todo why does not work
+				},
 				parse_mode: 'HTML'
 			}
 		);
-
-		ctx.session.record.mapp = 'Zab';
-		ctx.session.record.truck = '';
-		ctx.session.step = 'idle';
-		return;
 	}
-	await ctx.reply(`Нажмите "${confirmKBTxt.CANCEL}" или "${confirmKBTxt.CREATERECORD}"`);
+		// todo транзакции
+
+	const recordDto: IRecord = {
+		mapp: ctx.session.record.mapp,
+		truck: ctx.session.record.truck,
+		// infront: lastRecord?.truck ?? '',
+		tg_user_id: userId,
+		tg_tel: contact.phone_number,
+		tg_contact: contact,
+		timestamp: Date.now(),
+		created_at: new Date(timestamp),
+		status: 'ENTERED'
+	};
+	let record: IRecord;
+	try {
+		record = await Record.create(recordDto);
+	} catch (error) {
+		// на случай одновременной записи
+		if (error instanceof ArangoError && error.code === 409) {
+			ctx.session.step = 'idle';
+			ctx.session.record.truck = '';
+			return await ctx.reply(
+				truckExistsTxt(recordDto),
+				{
+					reply_markup: { remove_keyboard: true },
+					parse_mode: 'HTML'
+				}
+			);
+		}
+		throw error;
+	}
+
+	const position = await Record.getPosition(record);
+
+	await ctx.api.sendMessage(
+		conf.recordsChannel,
+		`Тягач с гос. номером <b>${record.truck}</b> записан в очередь на МАПП ${Mapps[record.mapp]}.\nПозиция в очереди № ${position}`, // todo: enum Mapps
+		{
+			parse_mode: 'HTML',
+		}
+	);
+
+	await ctx.reply(
+		`Тягач с гос. номером <b>${record.truck}</b> записан в очередь на МАПП ${Mapps[record.mapp]}.\nПозиция в очереди № ${position}`,
+		{
+			reply_markup: { remove_keyboard: true },
+			parse_mode: 'HTML'
+		}
+	);
+
+	ctx.session.record.mapp = 'Zab';
+	ctx.session.record.truck = '';
+	ctx.session.step = 'idle';
+	return;
 });
 
 bot.use(router);
@@ -227,8 +288,14 @@ bot.use(async (ctx, next) => {
 	if (conf.nodeEnv === 'development') {
 		console.log('!!! UNHANDLED UPDATE');
 	}
+
+	// todo: respond something
 	await db.collection('UnhandledUpdates').save({ update: ctx.update });
-	await next();
+	ctx.session.step = 'idle';
+	await ctx.reply(txt.help_info, {
+		reply_markup: { remove_keyboard: true },
+	});
+	// await next();
 });
 
 bot.catch((err) => {

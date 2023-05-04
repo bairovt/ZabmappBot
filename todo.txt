@@ -1,1 +1,5 @@
 - checkMyQnum - посмотреть номер в очереди
+
+
+----
+зарегать еще ботов zabmap_bot zabmapp_bot

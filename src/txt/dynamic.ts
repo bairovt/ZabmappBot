@@ -1,12 +1,6 @@
-export function paymentText(order: any, yooPayment: any) {
-	const text =
-		`Ссылка для оплаты заказа № ${order.ms_name} (ЮKassa):\n\n` +
-		`${yooPayment.confirmation.confirmation_url}\n\n` +
-		// `После получения оплаты мы начнем сборку посылки. Трек-номер отправим Вам в телеграм.\n` +
-		`Трек-номер для отслеживания груза Вам отправят в течение 2 рабочих дней после оплаты.\n` +
-		`Если не отправят - напишите @AyurM.\n\n` +
-		`Ссылка для оплаты действительна около часа, обновить можно по кнопке:`;
-	// `После оплаты пройдите по сслыке "Вернуться в магазин (на сайт)", так мы получим уведомление об оплате.`;
+import { IRecord, Mapps } from "../models/Record";
 
+export function truckExistsTxt(record: IRecord) {
+	const text = `Тягач с гос. номером <b>${record.truck}</b> уже записан в очередь на МАПП ${Mapps[record.mapp]}.\nДублирование невозможно.`;
 	return text;
 }
