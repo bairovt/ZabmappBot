@@ -11,7 +11,7 @@ export function getRecordKb(recordKey: string): InlineKeyboard {
 		.text('Обновить', `rec:${recordKey}:upd`)
 		.text('Выйти', `rec:${recordKey}:exit`)
 		.row()
-		.text('Заехал!', `rec:${recordKey}:finish`);
+		.text('ЗАЕХАЛ!', `rec:${recordKey}:finish`);
 	return recordKb;
 }
 

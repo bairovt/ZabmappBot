@@ -25,7 +25,7 @@ const bot = new Bot<MyContext>(conf.bot.token as string);
 bot.use(session({ initial: initialSessionData }));
 
 bot.use(async (ctx, next) => {
-	if (true) throw new Error('test error');
+	// if (true) throw new Error('test error');
 	await Log.create({ update: ctx.update });
 	if (!ctx.msg?.from) throw new Error('not a User update');
 	// if (ctx.update.message?.text === '/start') return await next();
@@ -37,7 +37,7 @@ bot.command('start', async (ctx) => {
 	await User.start(ctx, ctx.msg?.from as TUser);
 	// todo  refactor this to initialSessionData()
 	ctx.session.step = 'idle';
-	await ctx.reply(txt.help_info, {
+	await ctx.reply(txt.info, {
 		reply_markup: { remove_keyboard: true },
 	});
 });
@@ -45,6 +45,15 @@ bot.command('start', async (ctx) => {
 bot.command('enter', async (ctx) => {
 	await User.start(ctx, ctx.msg?.from as TUser);
 	ctx.session.record.mapp = 'Zab';
+
+	const usersRecords = await Record.findAllMyRecords(ctx.from?.id as number); // todo: check if id exists
+
+	if (usersRecords.length >= 5) {
+		return ctx.reply(txt.limit, {
+			reply_markup: { remove_keyboard: true },
+		});
+	}
+
 	ctx.session.step = 'truck';
 	// await ctx.reply(txt.select_mapp, {
 	// 	reply_markup: getMappsKb(),
@@ -71,7 +80,7 @@ bot.command('myrecords', async (ctx) => {
 
 bot.command('help', async (ctx) => {
 	const helpInfoKb = new InlineKeyboard().text('Закрыть', 'closeHelpInfo');
-	await ctx.reply(txt.help_info, {
+	await ctx.reply(txt.info, {
 		reply_markup: helpInfoKb,
 		parse_mode: 'HTML',
 		disable_web_page_preview: true,
@@ -112,12 +121,8 @@ bot.callbackQuery(/^rec:(\d+):(upd|exit|finish)$/, async (ctx) => {
 		return await ctx.answerCallbackQuery(txt.record_not_found);
 	}
 	try {
-		// if (true) throw new Error('test');
 		switch (action) {
 			case 'upd':
-				// const positon = await Record.getPosition(record);
-				// const text = recordText(ctx, record);
-				// await ctx.editMessageText(`Позиция в очереди №${positon}`);
 				const recordKb = getRecordKb(record._key as string);
 				const info = await recordInfo(record);
 				await ctx.editMessageText(info, {
@@ -294,14 +299,14 @@ router.route('createRecord', async (ctx) => {
 
 	await ctx.api.sendMessage(
 		conf.recordsChannel,
-		`Тягач с гос. номером <b>${record.truck}</b> записан в очередь на МАПП ${Mapps[record.mapp]}.\nПозиция в очереди № ${position}`, // todo: enum Mapps
+		`Тягач с гос. номером <b>${record.truck}</b> записан в очередь на МАПП ${Mapps[record.mapp]}.\nТекущая позиция в очереди: ${position}`, // todo: enum Mapps
 		{
 			parse_mode: 'HTML',
 		}
 	);
 
 	await ctx.reply(
-		`Тягач с гос. номером <b>${record.truck}</b> записан в очередь на МАПП ${Mapps[record.mapp]}.\nПозиция в очереди № ${position}`,
+		`Тягач с гос. номером <b>${record.truck}</b> записан в очередь на МАПП ${Mapps[record.mapp]}.\nТекущая позиция в очереди: ${position}`,
 		{
 			reply_markup: { remove_keyboard: true },
 			parse_mode: 'HTML'
@@ -325,7 +330,7 @@ bot.use(async (ctx, next) => {
 	// todo: respond something
 	await db.collection('UnhandledUpdates').save({ update: ctx.update });
 	ctx.session.step = 'idle';
-	await ctx.reply(txt.help_info, {
+	await ctx.reply(txt.info, {
 		reply_markup: { remove_keyboard: true },
 	});
 	// await next();
@@ -361,7 +366,7 @@ async function main() {
 		{ command: 'enter', description: 'Записаться в очередь' },
 		{ command: 'myrecords', description: 'Мои записи' },
 		// { command: 'dostavka', description: 'О доставк	е' },
-		{ command: 'start', description: 'Перезапуск' },
+		{ command: 'start', description: 'Перезапуск бота' },
 		{ command: 'info', description: 'Справка' },
 	]);
 	// This will connect to the Telegram servers and wait for messages.
