@@ -134,7 +134,7 @@ bot.callbackQuery(/^rec:(\d+):(upd|exit|finish)$/, async (ctx) => {
 			case 'exit':
 				await Record.exit(record);
 				// todo: подтверждение действия
-				const exitMessage = `Тягач с гос. номером <b>${record.truck}</b> вышел из очереди`
+				const exitMessage = `☑️ Тягач с гос. номером <b>${record.truck}</b> вышел из очереди`
 				await ctx.editMessageText(exitMessage, {parse_mode: 'HTML'});
 				await ctx.answerCallbackQuery();
 				await ctx.api.sendMessage(
@@ -148,7 +148,7 @@ bot.callbackQuery(/^rec:(\d+):(upd|exit|finish)$/, async (ctx) => {
 			case 'finish':
 				// todo: подтверждение действия
 				await Record.finish(record);
-				const finishMessage = `Тягач с гос. номером <b>${record.truck}</b> заехал на МАПП`;
+				const finishMessage = `✅ Тягач с гос. номером <b>${record.truck}</b> заехал на МАПП`;
 				await ctx.editMessageText(finishMessage, {parse_mode: 'HTML'});
 				await ctx.answerCallbackQuery();
 				await ctx.api.sendMessage(
@@ -299,14 +299,14 @@ router.route('createRecord', async (ctx) => {
 
 	await ctx.api.sendMessage(
 		conf.recordsChannel,
-		`Тягач с гос. номером <b>${record.truck}</b> записан в очередь на МАПП ${Mapps[record.mapp]}.\nТекущая позиция в очереди: ${position}`, // todo: enum Mapps
+		`🚛 Тягач с гос. номером <b>${record.truck}</b> записан в очередь на МАПП ${Mapps[record.mapp]}.\nТекущая позиция в очереди: ${position}`, // todo: enum Mapps
 		{
 			parse_mode: 'HTML',
 		}
 	);
 
 	await ctx.reply(
-		`Тягач с гос. номером <b>${record.truck}</b> записан в очередь на МАПП ${Mapps[record.mapp]}.\nТекущая позиция в очереди: ${position}`,
+		`🚛 Тягач с гос. номером <b>${record.truck}</b> записан в очередь на МАПП ${Mapps[record.mapp]}.\nТекущая позиция в очереди: ${position}`,
 		{
 			reply_markup: { remove_keyboard: true },
 			parse_mode: 'HTML'
