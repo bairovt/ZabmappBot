@@ -11,7 +11,7 @@ export const db = new Database({
 
 export async function dbEnsureCollections(): Promise<void> {
 	// const expectedCollections = ['StsRecords', 'ZabRecords', 'ArchiveRecords', 'Users', 'Logs', 'UnhandledUpdates'];
-	const expectedCollections = ['Records', 'ArchiveRecords', 'Users', 'Logs', 'UnhandledUpdates'];
+	const expectedCollections = ['Records', 'ArchiveRecords', 'Users', 'Logs', 'UnhandledUpdates', 'ErrorsLog'];
 	const collections = await db.listCollections();
 	const existingCollections = collections.map((collection) => collection.name);
 	const missingCollections = expectedCollections.filter((name) => !existingCollections.includes(name));
@@ -41,45 +41,6 @@ export async function dbEnsureIndexes(): Promise<void> {
 		name: 'idx-Records-timestamp',
 		unique: true,
 	});
-
-	// // StsRecords
-	// await db.collection('StsRecords').ensureIndex({
-	// 	type: 'persistent',
-	// 	fields: ['truck'],
-	// 	name: 'idx-StsRecords-truck',
-	// 	unique: true,
-	// });
-	// await db.collection('StsRecords').ensureIndex({
-	// 	type: 'persistent',
-	// 	fields: ['infront'],
-	// 	name: 'idx-StsRecords-infront',
-	// 	unique: true,
-	// });
-	// await db.collection('StsRecords').ensureIndex({
-	// 	type: 'persistent',
-	// 	fields: ['timestamp'],
-	// 	name: 'idx-StsRecords-timestamp',
-	// 	unique: true,
-	// });
-	// // ZabRecords
-	// await db.collection('ZabRecords').ensureIndex({
-	// 	type: 'persistent',
-	// 	fields: ['truck'],
-	// 	name: 'idx-ZabRecords-truck',
-	// 	unique: true,
-	// });
-	// await db.collection('ZabRecords').ensureIndex({
-	// 	type: 'persistent',
-	// 	fields: ['infront'],
-	// 	name: 'idx-ZabRecords-infront',
-	// 	unique: true,
-	// });
-	// await db.collection('ZabRecords').ensureIndex({
-	// 	type: 'persistent',
-	// 	fields: ['timestamp'],
-	// 	name: 'idx-ZabRecords-timestamp',
-	// 	unique: true,
-	// });
 
 	await db.collection('Users').ensureIndex({
 		type: 'persistent',

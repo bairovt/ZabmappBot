@@ -16,6 +16,7 @@ interface IConf {
 		username: string | undefined;
 		password: string | undefined;
 	};
+	mapZabName: string;
 	// channelId: number;
 	// channelChatId: number;
 	admin: number;
@@ -37,6 +38,7 @@ const conf: IConf = {
 		username: process.env.DB_USERNAME,
 		password: process.env.DB_PASSWORD,
 	},
+	mapZabName: process.env.MAP_ZAB_NAME as string,
 	// channelId: Number(process.env.CHANNEL_ID),
 	// channelChatId: Number(process.env.CHANNEL_CHAT_ID),
 	admin: Number(process.env.ADMIN),

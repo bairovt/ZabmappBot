@@ -25,6 +25,7 @@ const bot = new Bot<MyContext>(conf.bot.token as string);
 bot.use(session({ initial: initialSessionData }));
 
 bot.use(async (ctx, next) => {
+	if (true) throw new Error('test error');
 	await Log.create({ update: ctx.update });
 	if (!ctx.msg?.from) throw new Error('not a User update');
 	// if (ctx.update.message?.text === '/start') return await next();
@@ -54,9 +55,9 @@ bot.command('enter', async (ctx) => {
 	await ctx.reply(txt.set_truck, { reply_markup: {remove_keyboard: true}, parse_mode: 'HTML' });
 });
 
-bot.command('records', async (ctx) => {
+bot.command('myrecords', async (ctx) => {
 	ctx.session.step = 'idle';
-	const records = await Record.findAllMyRecords(ctx.from?.id as number); // TODO: check if id exists
+	const records = await Record.findAllMyRecords(ctx.from?.id as number); // todo: check if id exists
 	if (!records.length) return await ctx.reply(txt.no_records);
 	for (const record of records) {
 		const recordKb = getRecordKb(record._key as string);
@@ -94,6 +95,71 @@ bot.callbackQuery('closeHelpInfo', async (ctx) => {
 // 	});
 // 	await ctx.reply(txt.set_truck, {});
 // });
+
+bot.callbackQuery(/^rec:(\d+):(upd|exit|finish)$/, async (ctx) => {
+	const data = ctx.match;
+	//@ts-ignore
+	const recordKey = data[1];
+	//@ts-ignore
+	const action = data[2];
+	//@ts-ignore
+
+	// const record = await Record.findByKey((record) => record._key === recordKey);
+	const record = await Record.findByKey(recordKey);
+
+	if (!record) {
+		console.error('record not found', recordKey); // todo: send to logBot
+		return await ctx.answerCallbackQuery(txt.record_not_found);
+	}
+	try {
+		// if (true) throw new Error('test');
+		switch (action) {
+			case 'upd':
+				// const positon = await Record.getPosition(record);
+				// const text = recordText(ctx, record);
+				// await ctx.editMessageText(`Позиция в очереди №${positon}`);
+				const recordKb = getRecordKb(record._key as string);
+				const info = await recordInfo(record);
+				await ctx.editMessageText(info, {
+					reply_markup: recordKb,
+					parse_mode: 'HTML',
+				});
+				await ctx.answerCallbackQuery();
+				break;
+			case 'exit':
+				await Record.exit(record);
+				// todo: подтверждение действия
+				const exitMessage = `Тягач с гос. номером <b>${record.truck}</b> вышел из очереди`
+				await ctx.editMessageText(exitMessage, {parse_mode: 'HTML'});
+				await ctx.answerCallbackQuery();
+				await ctx.api.sendMessage(
+					conf.recordsChannel,
+					exitMessage,
+					{
+						parse_mode: 'HTML',
+					}
+				);
+				break;
+			case 'finish':
+				// todo: подтверждение действия
+				await Record.finish(record);
+				const finishMessage = `Тягач с гос. номером <b>${record.truck}</b> заехал на МАПП`;
+				await ctx.editMessageText(finishMessage, {parse_mode: 'HTML'});
+				await ctx.answerCallbackQuery();
+				await ctx.api.sendMessage(
+					conf.recordsChannel,
+					finishMessage,
+					{
+						parse_mode: 'HTML',
+					}
+				);
+				break;
+		}
+	} catch (error) {
+		if (isNotModifiedError(error)) return await ctx.answerCallbackQuery(txt.no_change);;
+		throw error;
+	}
+});
 
 const router = new Router<MyContext>((ctx) => ctx.session.step);
 
@@ -250,39 +316,6 @@ router.route('createRecord', async (ctx) => {
 
 bot.use(router);
 
-bot.callbackQuery(/^rec:([a-zA-Z_]+):(exit|view)$/, async (ctx) => {
-	const data = ctx.match;
-	//@ts-ignore
-	const recordKey = data[1];
-	//@ts-ignore
-	const action = data[2];
-	//@ts-ignore
-
-	const record = await Record.findByKey((record) => record._key === recordKey);
-
-	if (!record) {
-		console.error('record not found', recordKey); // todo: send to logBot
-		return await ctx.answerCallbackQuery(txt.record_not_found);
-	}
-	try {
-		switch (action) {
-			case 'exit':
-				await Record.exit(record);
-				await ctx.editMessageText('Запись удалена');
-				await ctx.answerCallbackQuery();
-				break;
-			case 'view':
-				const positon = await Record.getPosition(record);
-				// const text = recordText(ctx, record);
-				await ctx.editMessageText(`Позиция в очереди ${positon}`);
-				await ctx.answerCallbackQuery();
-				break;
-		}
-	} catch (err) {
-		if (!isNotModifiedError(err)) throw err;
-	}
-});
-
 // unhandled updates
 bot.use(async (ctx, next) => {
 	if (conf.nodeEnv === 'development') {
@@ -298,19 +331,25 @@ bot.use(async (ctx, next) => {
 	// await next();
 });
 
-bot.catch((err) => {
-	const ctx = err.ctx;
-	console.error(`Error while handling update ${ctx.update.update_id}:`);
-	const e = err.error;
-	if (e instanceof BotError) {
-		console.error('Bot Error:', e.error);
-	} else if (e instanceof GrammyError) {
-		// if (isNotModifiedError(e)) return; // ignore this error
-		console.error('Error in request:', e.description);
-	} else if (e instanceof HttpError) {
-		console.error('Could not contact Telegram:', e);
-	} else {
-		console.error('UNKNOWN_ERROR::', e);
+bot.catch(async (err) => {
+	try {
+		await db.collection('ErrorsLog').save(err);
+
+		const ctx = err.ctx;
+		console.error(`Error while handling update ${ctx.update.update_id}:`);
+		const e = err.error;
+		if (e instanceof BotError) {
+			console.error('Bot Error:', e.error);
+		} else if (e instanceof GrammyError) {
+			// if (isNotModifiedError(e)) return; // ignore this error
+			console.error('Error in request:', e.description);
+		} else if (e instanceof HttpError) {
+			console.error('Could not contact Telegram:', e);
+		} else {
+			console.error('UNKNOWN_ERROR::', e);
+		}
+	} catch (error) {
+		console.error('Error while err handle:', error);
 	}
 });
 
@@ -320,10 +359,10 @@ async function main() {
 
 	await bot.api.setMyCommands([
 		{ command: 'enter', description: 'Записаться в очередь' },
-		{ command: 'records', description: 'Мои записи' },
+		{ command: 'myrecords', description: 'Мои записи' },
 		// { command: 'dostavka', description: 'О доставк	е' },
 		{ command: 'start', description: 'Перезапуск' },
-		{ command: 'help', description: 'Помощь' },
+		{ command: 'info', description: 'Справка' },
 	]);
 	// This will connect to the Telegram servers and wait for messages.
 	bot.start({
