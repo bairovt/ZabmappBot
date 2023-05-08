@@ -64,7 +64,7 @@ bot.command('enter', async (ctx) => {
 	await ctx.reply(txt.set_truck, { reply_markup: {remove_keyboard: true}, parse_mode: 'HTML' });
 });
 
-bot.command('myrecords', async (ctx) => {
+bot.command('myrecs', async (ctx) => {
 	ctx.session.step = 'idle';
 	const records = await Record.findAllMyRecords(ctx.from?.id as number); // todo: check if id exists
 	if (!records.length) return await ctx.reply(txt.no_records);
@@ -364,7 +364,7 @@ async function main() {
 
 	await bot.api.setMyCommands([
 		{ command: 'enter', description: 'Записаться в очередь' },
-		{ command: 'myrecords', description: 'Мои записи' },
+		{ command: 'myrecs', description: 'Мои записи' },
 		// { command: 'dostavka', description: 'О доставк	е' },
 		{ command: 'start', description: 'Перезапуск бота' },
 		{ command: 'info', description: 'Справка' },
