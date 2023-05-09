@@ -42,13 +42,22 @@ bot.command('start', async (ctx) => {
 	});
 });
 
-// bot.command('sendall', async (ctx) => {
-// 	ctx.session.step = 'idle';
-// 	const allUsers = await User.getAll();
-// 	await ctx.reply(txt.info, {
-// 		reply_markup: { remove_keyboard: true },
-// 	});
-// });
+bot.command('sendall', async (ctx) => {
+	if (ctx.msg?.from?.id !== conf.admin) {
+		return await ctx.reply('forbidden');
+	};
+	ctx.session.step = 'idle';
+	const sendMsg = ctx.match;
+
+	const allUsers = await User.getAll();
+	//@ts-ignore
+	const allUsersSend = allUsers.map((user) => {
+		return ctx.api.sendMessage(user.id, sendMsg, {
+			parse_mode: 'HTML',
+		});
+	});
+	await Promise.all(allUsersSend);
+});
 
 // TODO:
 // bot.command('move', async (ctx) => {

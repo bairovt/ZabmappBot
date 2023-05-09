@@ -43,7 +43,7 @@ export class User {
 		FOR u IN Users
 		RETURN u`
 			)
-			.then((cursor) => cursor.next());
+			.then((cursor) => cursor.all());
 		return users;
 	}
 
