@@ -23,4 +23,7 @@ npm-debug.log
 # build directory
 build/
 
+# tmp directory
+tmp/
+
 # npm lock files
