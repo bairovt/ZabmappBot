@@ -5,7 +5,7 @@ import { User as TUser, Contact } from '@grammyjs/types';
 import conf from '../config/config';
 
 export type TMapp = 'Zab' | 'Sts';
-export type TStatus = 'ENTERED' | 'EXITED' | 'FINISHED' | 'DELETED';
+export type TStatus = 'ENTERED' | 'MOVED' | 'EXITED' | 'FINISHED' | 'DELETED';
 
 export enum Mapps {
 	Zab = 'Забайкальск (тест)', //  TODO:
@@ -31,6 +31,7 @@ export interface IRecord {
 	exited_at?: Date;
 	finished_at?: Date;
 	deleted_at?: Date;
+	deleted_by?: number; // tg user id
 	delete_reason?: string;
 }
 export interface ITruck {
@@ -84,11 +85,21 @@ export class Record {
 		return;
 	}
 
-	static async delete(record: IRecord, reason: string): Promise<void> {
+	// static async moveBehindInfront(record: IRecord, infront: IRecord): Promise<void> {
+	// 	record.status = 'DELETED';
+	// 	record.moved_at = new Date();
+	// 	record.delete_reason = reason;
+	// 	// todo: transaction
+	// 	await Record.collection.remove(record._id as string, {waitForSync: true});
+	// 	return;
+	// }
+
+	static async delete(record: IRecord, reason: string, by: number): Promise<void> {
 		const archiveCollection = db.collection('ArchiveRecords');
 		record.status = 'DELETED';
 		record.deleted_at = new Date();
 		record.delete_reason = reason;
+		record.deleted_by = by;
 		// todo: transaction
 		await archiveCollection.save(record, { waitForSync: true });
 		await Record.collection.remove(record._id as string, {waitForSync: true});

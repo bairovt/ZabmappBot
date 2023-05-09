@@ -96,7 +96,7 @@ bot.command('delete', async (ctx) => {
 	const record = await Record.findByTruck(truckNumber);
 	if (!record) return await ctx.reply(truckNumber + ' record not found');
 
-	await Record.delete(record, deleteReason);
+	await Record.delete(record, deleteReason, ctx.msg?.from?.id as number);
 	return await ctx.reply(truckNumber + ' deleted');
 });
 
