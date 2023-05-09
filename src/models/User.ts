@@ -36,6 +36,17 @@ export class User {
 		return user;
 	}
 
+	static async getAll(): Promise<any> {
+		const users = await db
+			.query(
+				aql`
+		FOR u IN Users
+		RETURN u`
+			)
+			.then((cursor) => cursor.next());
+		return users;
+	}
+
 	static async updateById(id: tgID, patch: object): Promise<any> {
 		const user = await db
 			.query(

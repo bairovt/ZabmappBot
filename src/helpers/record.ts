@@ -26,15 +26,31 @@ export async function checkRecordInfo(ctx: MyContext): Promise<string> {
 		return '';
 	}
 
-	const recordInfo = '<b>Информация о записи</b>\n\n' + getRecortSummary(ctx) +
-						`\nДля записи нажмите кнопку "${confirmKBTxt.CREATERECORD}" и согласитесь на отправку номера телефона.`;
+	if (!ctx.session.record?.infront) {
+		ctx.session.step = 'infront';
+		await ctx.reply(txt.set_infront, { parse_mode: 'HTML', disable_web_page_preview: true });
+		return '';
+	}
+
+	if (!ctx.session.record?.inn) {
+		ctx.session.step = 'inn';
+		await ctx.reply(txt.set_inn, { parse_mode: 'HTML', disable_web_page_preview: true });
+		return '';
+	}
+
+	const recordSummary = getRecordSummary(ctx);
+
+	const recordInfo = '<b>Информация о записи</b>\n\n' +
+						recordSummary +
+						`Для записи нажмите кнопку "${confirmKBTxt.CREATERECORD}" и согласитесь на отправку номера телефона.`;
 	return recordInfo;
 }
 
-export function getRecortSummary(ctx: MyContext): string {
+export function getRecordSummary(ctx: MyContext): string {
 	const recordInfo =
-		// `<b>МАПП:</b>: <i>${ctx.session.record.mapp}</i>\n`
-		`Номер тягача: <b>${ctx.session.record.truck}</b>\n`;
+		`Номер тягача: <b>${ctx.session.record.truck}</b>\n` +
+		`Номер впередистоящего тягача: <b>${ctx.session.record.infront}</b>\n` +
+		`ИНН перевозчика: <b>${ctx.session.record.inn}</b>\n\n`;
 	return recordInfo;
 }
 

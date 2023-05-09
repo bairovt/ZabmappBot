@@ -18,8 +18,8 @@ export interface IRecord {
 	_key?: string; // arangodb
 	mapp: TMapp;
 	truck: string;
-	// infront: string;
-	// phone: string;
+	infront: string;
+	inn: string;
 	tg_user_id: number;
 	tg_tel: string;
 	tg_contact: Contact;

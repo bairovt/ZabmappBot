@@ -42,6 +42,32 @@ bot.command('start', async (ctx) => {
 	});
 });
 
+// bot.command('sendall', async (ctx) => {
+// 	ctx.session.step = 'idle';
+// 	const allUsers = await User.getAll();
+// 	await ctx.reply(txt.info, {
+// 		reply_markup: { remove_keyboard: true },
+// 	});
+// });
+
+// TODO:
+// bot.command('move', async (ctx) => {
+// 	await User.start(ctx, ctx.msg?.from as TUser);
+// 	ctx.session.step = 'idle';
+// 	await ctx.reply(txt.info, {
+// 		reply_markup: { remove_keyboard: true },
+// 	});
+// });
+
+// TODO:
+// bot.command('delete', async (ctx) => {
+// 	await User.start(ctx, ctx.msg?.from as TUser);
+// 	ctx.session.step = 'idle';
+// 	await ctx.reply(txt.info, {
+// 		reply_markup: { remove_keyboard: true },
+// 	});
+// });
+
 bot.command('enter', async (ctx) => {
 	await User.start(ctx, ctx.msg?.from as TUser);
 	ctx.session.record.mapp = 'Zab';
@@ -70,6 +96,7 @@ bot.command('myrecs', async (ctx) => {
 	if (!records.length) return await ctx.reply(txt.no_records);
 	for (const record of records) {
 		const recordKb = getRecordKb(record._key as string);
+		// const info = await checkRecordInfo(record); // TODO:
 		const info = await recordInfo(record);
 		await ctx.reply(info, {
 			reply_markup: recordKb,
@@ -124,6 +151,7 @@ bot.callbackQuery(/^rec:(\d+):(upd|exit|finish)$/, async (ctx) => {
 		switch (action) {
 			case 'upd':
 				const recordKb = getRecordKb(record._key as string);
+				// const info = await checkRecordInfo(record); // TODO:
 				const info = await recordInfo(record);
 				await ctx.editMessageText(info, {
 					reply_markup: recordKb,
@@ -189,9 +217,8 @@ router.route('truck', async (ctx, next) => {
 	if (!ctx.from?.id || !ctx.message?.text) {
 		return await next();
 	}
-	// todo: validate valid truck number
+	// todo: validate valid truck number by internet
 	let truckNumber = ctx.message.text.toLocaleUpperCase();
-	// check if truck number is valid by regex /^([АВЕКМНОРСТУХ]\d{3}[АВЕКМНОРСТУХ]{2})(\d{2,3})?$/
 	if (!/^[АВЕКМНОРСТУХ]\d{3}[АВЕКМНОРСТУХ]{2}\d{2,3}$/.test(truckNumber)) {
 		return await ctx.reply(txt.set_truck, { parse_mode: 'HTML' });
 	}
@@ -213,19 +240,53 @@ router.route('truck', async (ctx, next) => {
 		);
 	}
 	ctx.session.record.truck = truck.truck;
+
+	ctx.session.step = 'infront';
+
+	await ctx.reply(txt.set_infront, { reply_markup: {remove_keyboard: true}, parse_mode: 'HTML' });
+});
+
+router.route('infront', async (ctx, next) => {
+	if (!ctx.from?.id || !ctx.message?.text) {
+		return await next();
+	}
+	// todo: validate valid truck number
+	let infrontNumber = ctx.message.text.toLocaleUpperCase();
+	//TODO: check if infrontNumber is not equal to truckNumber
+	if (!/^[АВЕКМНОРСТУХ]\d{3}[АВЕКМНОРСТУХ]{2}\d{2,3}$/.test(infrontNumber) && infrontNumber !== '0') {
+		return await ctx.reply(txt.set_infront, { parse_mode: 'HTML' });
+	}
+
+	ctx.session.record.infront = infrontNumber;
+
+	ctx.session.step = 'inn';
+
+	await ctx.reply(txt.set_inn, { reply_markup: {remove_keyboard: true}, parse_mode: 'HTML' });
+});
+
+router.route('inn', async (ctx, next) => {
+	if (!ctx.from?.id || !ctx.message?.text) {
+		return await next();
+	}
+
+	let inn = ctx.message.text;
+	if (!/^\d{10,12}$/.test(inn)) {
+		return await ctx.reply(txt.set_inn, { parse_mode: 'HTML' });
+	}
+
+	ctx.session.record.inn = inn;
+
 	const recordInfo = await checkRecordInfo(ctx);
 	if (!recordInfo) return;
-	// await ctx.reply(recordInfo, { reply_markup: confirmRecordKb, parse_mode: 'HTML' });
 
 	ctx.session.step = 'createRecord';
+
 	await ctx.reply(
-		// `Для запси нажмите "${confirmKBTxt.CREATERECORD}"\nи подтвердите отправку Вашего telegram-номера`,
 		recordInfo,
 		{
 			reply_markup: {
 				keyboard: confirmKB.build(),
 				resize_keyboard: true,
-				// input_field_placehoder: 'Send LEFT or RIGHT', // todo why does not work
 			},
 			parse_mode: 'HTML'
 		}
@@ -263,12 +324,13 @@ router.route('createRecord', async (ctx) => {
 			}
 		);
 	}
-		// todo транзакции
 
+	// todo транзакции
 	const recordDto: IRecord = {
 		mapp: ctx.session.record.mapp,
 		truck: ctx.session.record.truck,
-		// infront: lastRecord?.truck ?? '',
+		infront: ctx.session.record.infront,
+		inn: ctx.session.record.inn,
 		tg_user_id: userId,
 		tg_tel: contact.phone_number,
 		tg_contact: contact,
