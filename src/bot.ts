@@ -81,6 +81,19 @@ bot.command('find', async (ctx) => {
 	return await ctx.reply(JSON.stringify(record, null, 2));
 });
 
+bot.command('getbehind', async (ctx) => {
+	if (ctx.msg?.from?.id !== conf.admin) {
+		return await ctx.reply('forbidden');
+	};
+	ctx.session.step = 'idle';
+	const truckNumber = ctx.match;
+
+	const record = await Record.getBehindRecord(truckNumber);
+	if (!record) return await ctx.reply(`За ${truckNumber} тягач не числится`);
+
+	return await ctx.reply(JSON.stringify(record, null, 2));
+});
+
 bot.command('delete', async (ctx) => {
 	if (ctx.msg?.from?.id !== conf.admin) {
 		return await ctx.reply('forbidden');
@@ -391,16 +404,20 @@ router.route('createRecord', async (ctx) => {
 
 	const position = await Record.getPosition(record);
 
+	const msg = `🚛 Тягач с гос. номером <b>${record.truck}</b> записан в очередь на МАПП ${Mapps[record.mapp]}.\n` +
+	`Впередистоящий тягач: ${record.infront}\n` +
+	`Текущая позиция в очереди: ${position}`;
+
 	await ctx.api.sendMessage(
 		conf.recordsChannel,
-		`🚛 Тягач с гос. номером <b>${record.truck}</b> записан в очередь на МАПП ${Mapps[record.mapp]}.\nТекущая позиция в очереди: ${position}`, // todo: enum Mapps
+		msg,
 		{
 			parse_mode: 'HTML',
 		}
 	);
 
 	await ctx.reply(
-		`🚛 Тягач с гос. номером <b>${record.truck}</b> записан в очередь на МАПП ${Mapps[record.mapp]}.\nТекущая позиция в очереди: ${position}`,
+		msg,
 		{
 			reply_markup: { remove_keyboard: true },
 			parse_mode: 'HTML'

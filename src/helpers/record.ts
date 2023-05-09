@@ -11,7 +11,9 @@ export async function recordInfo(record: IRecord): Promise<string> {
 	// 	text = text + `Впередистоящий тягач: <i>${record.infront}</i>\n`;
 	// }
 	const position = await Record.getPosition(record);
-	text += `Позиция в очереди: ${position}\n`;
+	text += `Позиция в очереди: ${position}\n` +
+	`Номер впередистоящего тягача: <b>${record.infront}</b>\n`;
+
 	return text;
 }
 

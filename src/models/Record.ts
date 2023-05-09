@@ -191,15 +191,15 @@ export class Record {
 	// 	return user;
 	// }
 
-	// static async getBehindTruck(numTruck: string): Promise<IRecord> {
-	// 	const record = await db
-	// 		.query(
-	// 			aql`
-	// 	FOR rec IN Records
-	// 	FILTER rec.infront == ${numTruck}
-	// 	RETURN rec`
-	// 		)
-	// 		.then((cursor) => cursor.next());
-	// 	return record;
-	// }
+	static async getBehindRecord(truckNumber: string): Promise<IRecord> {
+		const record = await db
+			.query(
+				aql`
+		FOR rec IN Records
+		FILTER rec.infront == ${truckNumber}
+		RETURN rec`
+			)
+			.then((cursor) => cursor.next());
+		return record;
+	}
 }
