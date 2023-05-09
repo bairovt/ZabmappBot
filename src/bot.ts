@@ -68,14 +68,37 @@ bot.command('sendall', async (ctx) => {
 // 	});
 // });
 
-// TODO:
-// bot.command('delete', async (ctx) => {
-// 	await User.start(ctx, ctx.msg?.from as TUser);
-// 	ctx.session.step = 'idle';
-// 	await ctx.reply(txt.info, {
-// 		reply_markup: { remove_keyboard: true },
-// 	});
-// });
+bot.command('find', async (ctx) => {
+	if (ctx.msg?.from?.id !== conf.admin) {
+		return await ctx.reply('forbidden');
+	};
+	ctx.session.step = 'idle';
+	const truckNumber = ctx.match;
+
+	const record = await Record.findByTruck(truckNumber);
+	if (!record) return await ctx.reply(truckNumber + ' запись не найдена');
+
+	return await ctx.reply(JSON.stringify(record, null, 2));
+});
+
+bot.command('delete', async (ctx) => {
+	if (ctx.msg?.from?.id !== conf.admin) {
+		return await ctx.reply('forbidden');
+	};
+	ctx.session.step = 'idle';
+	const deleteArgument = ctx.match;
+	let [truckNumber, deleteReason] = deleteArgument.split('::');
+	truckNumber = truckNumber.trim();
+
+	if (!deleteReason)	return await ctx.reply('delete reason not provided (divide with ::)');
+	deleteReason = deleteReason.trim();
+
+	const record = await Record.findByTruck(truckNumber);
+	if (!record) return await ctx.reply(truckNumber + ' record not found');
+
+	await Record.delete(record, deleteReason);
+	return await ctx.reply(truckNumber + ' deleted');
+});
 
 bot.command('enter', async (ctx) => {
 	await User.start(ctx, ctx.msg?.from as TUser);

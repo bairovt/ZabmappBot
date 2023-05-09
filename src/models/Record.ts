@@ -5,7 +5,7 @@ import { User as TUser, Contact } from '@grammyjs/types';
 import conf from '../config/config';
 
 export type TMapp = 'Zab' | 'Sts';
-export type TStatus = 'ENTERED' | 'EXITED' | 'FINISHED';
+export type TStatus = 'ENTERED' | 'EXITED' | 'FINISHED' | 'DELETED';
 
 export enum Mapps {
 	Zab = 'Забайкальск (тест)', //  TODO:
@@ -30,6 +30,8 @@ export interface IRecord {
 	status: TStatus;
 	exited_at?: Date;
 	finished_at?: Date;
+	deleted_at?: Date;
+	delete_reason?: string;
 }
 export interface ITruck {
 	mapp: TMapp;
@@ -82,12 +84,35 @@ export class Record {
 		return;
 	}
 
+	static async delete(record: IRecord, reason: string): Promise<void> {
+		const archiveCollection = db.collection('ArchiveRecords');
+		record.status = 'DELETED';
+		record.deleted_at = new Date();
+		record.delete_reason = reason;
+		// todo: transaction
+		await archiveCollection.save(record, { waitForSync: true });
+		await Record.collection.remove(record._id as string, {waitForSync: true});
+		return;
+	}
+
 	static async findByKey(_key: string): Promise<IRecord> {
 		const record = await db
 			.query(
 				aql`
 		FOR rec IN Records
 		FILTER rec._key == ${_key}
+		RETURN rec`
+			)
+			.then((cursor) => cursor.next());
+		return record;
+	}
+
+	static async findByTruck(trcukNum: string): Promise<IRecord> {
+		const record = await db
+			.query(
+				aql`
+		FOR rec IN Records
+		FILTER rec.truck == ${trcukNum}
 		RETURN rec`
 			)
 			.then((cursor) => cursor.next());
@@ -142,6 +167,18 @@ export class Record {
 
 		return records;
 	}
+
+	// static async updateById(id: tgID, patch: object): Promise<any> {
+	// 	const user = await db
+	// 		.query(
+	// 			aql`
+	// 	FOR u IN Users
+	// 	FILTER u.id == ${id}
+	// 	UPDATE u WITH ${patch} IN Users`
+	// 		)
+	// 		.then((cursor) => cursor.next());
+	// 	return user;
+	// }
 
 	// static async getBehindTruck(numTruck: string): Promise<IRecord> {
 	// 	const record = await db
