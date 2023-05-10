@@ -8,7 +8,7 @@ export type TMapp = 'Zab' | 'Sts';
 export type TStatus = 'ENTERED' | 'MOVED' | 'EXITED' | 'FINISHED' | 'DELETED';
 
 export enum Mapps {
-	Zab = 'Забайкальск (тест)', //  TODO:
+	Zab = 'Забайкальск (реальная)', //  TODO:
 	//@ts-ignore
 	// Zab = conf.mapZabName, // TODO: solve type error
 	Sts = 'Староцурухайтуй',
