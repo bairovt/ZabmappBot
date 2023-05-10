@@ -7,7 +7,7 @@ export interface ISessionData {
 	record: {
 		mapp: TMapp;
 		truck: string;
-		infront: string;
+		infront: string | null;
 		inn: string;
 	};
 }

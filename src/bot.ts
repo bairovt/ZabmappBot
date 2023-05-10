@@ -126,12 +126,6 @@ bot.command('enter', async (ctx) => {
 	}
 
 	ctx.session.step = 'truck';
-	// await ctx.reply(txt.select_mapp, {
-	// 	reply_markup: getMappsKb(),
-	// });
-	// await ctx.editMessageText(`Выбран МАПП: ${Mapps[ctx.session.record.mapp]}`, {
-	// 	// reply_markup: { remove_keyboard: true },
-	// });
 	await ctx.reply(txt.set_truck, { reply_markup: {remove_keyboard: true}, parse_mode: 'HTML' });
 });
 
@@ -141,7 +135,6 @@ bot.command('myrecs', async (ctx) => {
 	if (!records.length) return await ctx.reply(txt.no_records);
 	for (const record of records) {
 		const recordKb = getRecordKb(record._key as string);
-		// const info = await checkRecordInfo(record); // TODO:
 		const info = await recordInfo(record);
 		await ctx.reply(info, {
 			reply_markup: recordKb,
@@ -164,19 +157,6 @@ bot.callbackQuery('closeHelpInfo', async (ctx) => {
 	await ctx.answerCallbackQuery();
 });
 
-// bot.callbackQuery(/^mapp:([a-zA-Z_]+)$/, async (ctx) => {
-// 	const data = ctx.match;
-// 	//@ts-ignore
-// 	const mappKey = data[1];
-// 	// const mapp = Mapps[mappKey as TMapp];
-// 	ctx.session.record.mapp = mappKey as TMapp;
-// 	ctx.session.step = 'truck';
-// 	await ctx.editMessageText(`Выбран МАПП: ${Mapps[ctx.session.record.mapp]}`, {
-// 		// reply_markup: { remove_keyboard: true },
-// 	});
-// 	await ctx.reply(txt.set_truck, {});
-// });
-
 bot.callbackQuery(/^rec:(\d+):(upd|exit|finish)$/, async (ctx) => {
 	const data = ctx.match;
 	//@ts-ignore
@@ -185,7 +165,6 @@ bot.callbackQuery(/^rec:(\d+):(upd|exit|finish)$/, async (ctx) => {
 	const action = data[2];
 	//@ts-ignore
 
-	// const record = await Record.findByKey((record) => record._key === recordKey);
 	const record = await Record.findByKey(recordKey);
 
 	if (!record) {
@@ -196,7 +175,6 @@ bot.callbackQuery(/^rec:(\d+):(upd|exit|finish)$/, async (ctx) => {
 		switch (action) {
 			case 'upd':
 				const recordKb = getRecordKb(record._key as string);
-				// const info = await checkRecordInfo(record); // TODO:
 				const info = await recordInfo(record);
 				await ctx.editMessageText(info, {
 					reply_markup: recordKb,
@@ -241,23 +219,6 @@ bot.callbackQuery(/^rec:(\d+):(upd|exit|finish)$/, async (ctx) => {
 
 const router = new Router<MyContext>((ctx) => ctx.session.step);
 
-// router.route('mapp', async (ctx, next) => {
-// 	if (!ctx.from?.id || !ctx.message?.text) {
-// 		return await next();
-// 	}
-// 	if (!Object.keys(Mapps).includes(ctx.message.text)) {
-// 		return await ctx.reply(txt.select_mapp);
-// 	}
-// 	ctx.session.record.mapp = ctx.message.text as TMapp;
-// 	ctx.session.step = 'truck';
-
-// 	await ctx.reply(txt.set_truck, {
-// 		reply_markup: { remove_keyboard: true },
-// 	});
-
-// 	// await ctx.reply(ctx.session.record.mapp, { parse_mode: 'HTML' });
-// });
-
 router.route('truck', async (ctx, next) => {
 	if (!ctx.from?.id || !ctx.message?.text) {
 		return await next();
@@ -287,7 +248,6 @@ router.route('truck', async (ctx, next) => {
 	ctx.session.record.truck = truck.truck;
 
 	ctx.session.step = 'infront';
-
 	await ctx.reply(txt.set_infront, { reply_markup: {remove_keyboard: true}, parse_mode: 'HTML' });
 });
 
@@ -296,16 +256,18 @@ router.route('infront', async (ctx, next) => {
 		return await next();
 	}
 	// todo: validate valid truck number
-	let infrontNumber = ctx.message.text.toLocaleUpperCase();
-	//TODO: check if infrontNumber is not equal to truckNumber
+	let infrontNumber: string | null = ctx.message.text.toLocaleUpperCase();
+	// check if infrontNumber is not equal to truckNumber
+	if (infrontNumber === ctx.session.record.truck) {
+		return await ctx.reply('одинаковые номера недопустимы', { parse_mode: 'HTML' });
+	}
 	if (!/^[АВЕКМНОРСТУХ]\d{3}[АВЕКМНОРСТУХ]{2}\d{2,3}$/.test(infrontNumber) && infrontNumber !== '0') {
 		return await ctx.reply(txt.set_infront, { parse_mode: 'HTML' });
 	}
-
+	if (infrontNumber === '0') infrontNumber = null;
 	ctx.session.record.infront = infrontNumber;
 
 	ctx.session.step = 'inn';
-
 	await ctx.reply(txt.set_inn, { reply_markup: {remove_keyboard: true}, parse_mode: 'HTML' });
 });
 
@@ -404,9 +366,9 @@ router.route('createRecord', async (ctx) => {
 
 	const position = await Record.getPosition(record);
 
-	const msg = `🚛 Тягач с гос. номером <b>${record.truck}</b> записан в очередь на МАПП ${Mapps[record.mapp]}.\n` +
-	`Впередистоящий тягач: ${record.infront}\n` +
-	`Текущая позиция в очереди: ${position}`;
+	let msg = `🚛 Тягач с гос. номером <b>${record.truck}</b> записан в очередь на МАПП ${Mapps[record.mapp]}.\n`;
+	if (record.infront) msg += `Впередистоящий тягач: ${record.infront}\n`;
+	msg += `Текущая позиция в очереди: ${position}`;
 
 	await ctx.api.sendMessage(
 		conf.recordsChannel,

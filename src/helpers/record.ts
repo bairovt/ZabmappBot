@@ -7,12 +7,13 @@ import { confirmKBTxt } from '../keyboards';
 
 export async function recordInfo(record: IRecord): Promise<string> {
 	let text = `Номер тягача: <b>${record.truck}</b>.\n`;
-	// if (record.infront) {
-	// 	text = text + `Впередистоящий тягач: <i>${record.infront}</i>\n`;
-	// }
+
 	const position = await Record.getPosition(record);
-	text += `Позиция в очереди: ${position}\n` +
-	`Номер впередистоящего тягача: <b>${record.infront}</b>\n`;
+	text += `Позиция в очереди: ${position}\n`;
+	if (record.infront) {
+		text = text + `Впередистоящий тягач: <i>${record.infront}</i>\n`;
+	}
+	// `Номер впередистоящего тягача: <b>${record.infront}</b>\n`;
 
 	return text;
 }
@@ -28,11 +29,12 @@ export async function checkRecordInfo(ctx: MyContext): Promise<string> {
 		return '';
 	}
 
-	if (!ctx.session.record?.infront) {
-		ctx.session.step = 'infront';
-		await ctx.reply(txt.set_infront, { parse_mode: 'HTML', disable_web_page_preview: true });
-		return '';
-	}
+	// todo: bug here
+	// if (!ctx.session.record?.infront) {
+	// 	ctx.session.step = 'infront';
+	// 	await ctx.reply(txt.set_infront, { parse_mode: 'HTML', disable_web_page_preview: true });
+	// 	return '';
+	// }
 
 	if (!ctx.session.record?.inn) {
 		ctx.session.step = 'inn';
@@ -49,10 +51,13 @@ export async function checkRecordInfo(ctx: MyContext): Promise<string> {
 }
 
 export function getRecordSummary(ctx: MyContext): string {
-	const recordInfo =
-		`Номер тягача: <b>${ctx.session.record.truck}</b>\n` +
-		`Номер впередистоящего тягача: <b>${ctx.session.record.infront}</b>\n` +
-		`ИНН перевозчика: <b>${ctx.session.record.inn}</b>\n\n`;
+	let recordInfo = `Номер тягача: <b>${ctx.session.record.truck}</b>\n`;
+
+	if (ctx.session.record?.infront) {
+		recordInfo = recordInfo + `Номер впередистоящего тягача: <b>${ctx.session.record.infront}</b>\n`;
+	}
+
+	recordInfo = recordInfo + `ИНН перевозчика: <b>${ctx.session.record.inn}</b>\n\n`;
 	return recordInfo;
 }
 
