@@ -33,6 +33,9 @@ export interface IRecord {
 	deleted_at?: Date;
 	deleted_by?: number; // tg user id
 	delete_reason?: string;
+	moved_at?: Date;
+	moved_reason?: string;
+	moved_by?: number; // tg user id
 }
 export interface ITruck {
 	mapp: TMapp;
@@ -85,14 +88,23 @@ export class Record {
 		return;
 	}
 
-	// static async moveBehindInfront(record: IRecord, infront: IRecord): Promise<void> {
-	// 	record.status = 'DELETED';
-	// 	record.moved_at = new Date();
-	// 	record.delete_reason = reason;
-	// 	// todo: transaction
-	// 	await Record.collection.remove(record._id as string, {waitForSync: true});
-	// 	return;
-	// }
+	static async moveBehindInfront(record: IRecord, infront: IRecord, reason: string, by: number): Promise<void> {
+		// first this
+		const prevBehindInfrontRecord = await Record.getBehindRecord(infront.truck);
+
+		record.infront = infront.truck;
+		record.status = 'MOVED';
+		record.moved_at = new Date(); // same moved_at to search
+		record.moved_reason = reason;
+		record.moved_by = by;
+		// todo: transaction
+		await Record.updateByKey(record._key as string, record);
+
+		if (prevBehindInfrontRecord) {
+			await Record.updateByKey(prevBehindInfrontRecord._key as string, {infront: record.truck, m_at: record.moved_at}); // same moved_at to search
+		}
+		return;
+	}
 
 	static async delete(record: IRecord, reason: string, by: number): Promise<void> {
 		const archiveCollection = db.collection('ArchiveRecords');
@@ -179,17 +191,17 @@ export class Record {
 		return records;
 	}
 
-	// static async updateById(id: tgID, patch: object): Promise<any> {
-	// 	const user = await db
-	// 		.query(
-	// 			aql`
-	// 	FOR u IN Users
-	// 	FILTER u.id == ${id}
-	// 	UPDATE u WITH ${patch} IN Users`
-	// 		)
-	// 		.then((cursor) => cursor.next());
-	// 	return user;
-	// }
+	static async updateByKey(recordKey: string, patch: object): Promise<any> {
+		const record = await db
+			.query(
+				aql`
+		FOR rec IN Records
+		FILTER rec._key == ${recordKey}
+		UPDATE rec WITH ${patch} IN Records`
+			)
+			.then((cursor) => cursor.next());
+		return record;
+	}
 
 	static async getBehindRecord(truckNumber: string): Promise<IRecord> {
 		const record = await db
