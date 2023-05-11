@@ -30,17 +30,17 @@ export async function dbEnsureIndexes(): Promise<void> {
 		unique: true,
 	});
 
-	// await db.collection('Records').ensureIndex({
-	// 	type: 'persistent',
-	// 	fields: ['mapp', 'infront'],
-	// 	name: 'idx-Records-mapp-infront',
-	// 	unique: true,
-	// });
-
 	await db.collection('Records').ensureIndex({
 		type: 'persistent',
 		fields: ['timestamp'],
 		name: 'idx-Records-timestamp',
+		unique: true,
+	});
+
+	await db.collection('Trucks').ensureIndex({
+		type: 'persistent',
+		fields: ['front', 'truck', 'back'],
+		name: 'idx-Trucks-front-truck-back',
 		unique: true,
 	});
 

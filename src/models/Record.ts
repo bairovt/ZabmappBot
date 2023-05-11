@@ -3,20 +3,14 @@ import { db, tgID } from '.';
 import { MyContext } from '../context';
 import { User as TUser, Contact } from '@grammyjs/types';
 import conf from '../config/config';
+import { Mapps, TMapp } from './mapp';
 
-export type TMapp = 'Zab' | 'Sts';
+
 export type TStatus = 'ENTERED' | 'MOVED' | 'EXITED' | 'FINISHED' | 'DELETED';
 
-export enum Mapps {
-	Zab = 'Забайкальск (реальная)', //  TODO:
-	//@ts-ignore
-	// Zab = conf.mapZabName, // TODO: solve type error
-	Sts = 'Староцурухайтуй',
-}
-
 export interface IRecord {
-	_id?: string; // arangodb
-	_key?: string; // arangodb
+	_id?: string;
+	_key?: string;
 	mapp: TMapp;
 	truck: string;
 	infront: string | null;
@@ -37,7 +31,7 @@ export interface IRecord {
 	moved_reason?: string;
 	moved_by?: number; // tg user id
 }
-export interface ITruck {
+export interface ITruckDto {
 	mapp: TMapp;
 	truck: string;
 }
@@ -45,7 +39,7 @@ export interface ITruck {
 
 export class Record {
 	static collection = db.collection('Records');
-	static async find(example: ITruck): Promise<IRecord> {
+	static async find(example: ITruckDto): Promise<IRecord> {
 		const record = await db
 			.query(
 				aql`

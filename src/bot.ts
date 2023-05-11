@@ -14,7 +14,7 @@ import { getMappsKb, getRecordKb, confirmKB, confirmKBTxt } from './keyboards';
 import { InlineKeyboard } from 'grammy';
 // import {isArangoError} from 'arangojs';
 import { ArangoError } from "arangojs/error";
-import { IRecord, ITruck } from './models/Record';
+import { IRecord, ITruckDto } from './models/Record';
 // import { truckExistsTxt } from './txt/dynamic';
 
 
@@ -228,11 +228,11 @@ router.route('truck', async (ctx, next) => {
 	if (!/^[АВЕКМНОРСТУХ]\d{3}[АВЕКМНОРСТУХ]{2}\d{2,3}$/.test(truckNumber)) {
 		return await ctx.reply(txt.set_truck, { parse_mode: 'HTML' });
 	}
-	const truck: ITruck = {
+	const truckDto: ITruckDto = {
 		mapp: ctx.session.record.mapp,
 		truck: truckNumber
 	};
-	const existingTruck = await Record.find(truck);
+	const existingTruck = await Record.find(truckDto);
 	if (existingTruck) {
 		ctx.session.step = 'idle';
 		ctx.session.record.truck = '';
@@ -245,7 +245,7 @@ router.route('truck', async (ctx, next) => {
 			}
 		);
 	}
-	ctx.session.record.truck = truck.truck;
+	ctx.session.record.truck = truckDto.truck;
 
 	ctx.session.step = 'infront';
 	await ctx.reply(txt.set_infront, { reply_markup: {remove_keyboard: true}, parse_mode: 'HTML' });
@@ -432,13 +432,13 @@ bot.catch(async (err) => {
 });
 
 async function main() {
-	await dbEnsureIndexes();
 	await dbEnsureCollections();
 
+	await dbEnsureIndexes();
+
 	await bot.api.setMyCommands([
-		{ command: 'enter', description: 'Записаться в очередь' },
-		{ command: 'myrecs', description: 'Мои записи' },
-		// { command: 'dostavka', description: 'О доставк	е' },
+		{ command: 'add', description: 'Дбавить тягач' }, //'Записаться в очередь'
+		{ command: 'trucks', description: 'Мои тягачи' },
 		{ command: 'start', description: 'Перезапуск бота' },
 		{ command: 'info', description: 'Справка' },
 	]);
