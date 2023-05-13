@@ -25,17 +25,13 @@ const bot = new Bot<MyContext>(conf.bot.token as string);
 bot.use(session({ initial: initialSessionData }));
 
 bot.use(async (ctx, next) => {
-	// if (true) throw new Error('test error');
 	await Log.create({ update: ctx.update });
 	if (!ctx.msg?.from) throw new Error('not a User update');
-	// if (ctx.update.message?.text === '/start') return await next();
-	// const user = await User.findById(ctx.from?.id as number);
 	await next();
 });
 
 bot.command('start', async (ctx) => {
 	await User.start(ctx, ctx.msg?.from as TUser);
-	// todo  refactor this to initialSessionData()
 	ctx.session.step = 'idle';
 	await ctx.reply(txt.info, {
 		reply_markup: { remove_keyboard: true },
@@ -43,7 +39,7 @@ bot.command('start', async (ctx) => {
 });
 
 bot.command('sendall', async (ctx) => {
-	if (ctx.msg?.from?.id !== conf.admin) {
+	if (ctx.msg?.from?.id !== conf.superadmin) {
 		return await ctx.reply('forbidden');
 	};
 	const blUsers = await BlackList.getAll();
@@ -72,17 +68,8 @@ bot.command('sendall', async (ctx) => {
 	}
 });
 
-// TODO:
-// bot.command('move', async (ctx) => {
-// 	await User.start(ctx, ctx.msg?.from as TUser);
-// 	ctx.session.step = 'idle';
-// 	await ctx.reply(txt.info, {
-// 		reply_markup: { remove_keyboard: true },
-// 	});
-// });
-
 bot.command('find', async (ctx) => {
-	if (ctx.msg?.from?.id !== conf.admin) {
+	if (ctx.msg?.from?.id !== conf.superadmin) {
 		return await ctx.reply('forbidden');
 	};
 	ctx.session.step = 'idle';
@@ -95,7 +82,7 @@ bot.command('find', async (ctx) => {
 });
 
 bot.command('getbehind', async (ctx) => {
-	if (ctx.msg?.from?.id !== conf.admin) {
+	if (ctx.msg?.from?.id !== conf.superadmin) {
 		return await ctx.reply('forbidden');
 	};
 	ctx.session.step = 'idle';
@@ -108,7 +95,7 @@ bot.command('getbehind', async (ctx) => {
 });
 
 bot.command('delete', async (ctx) => {
-	if (ctx.msg?.from?.id !== conf.admin) {
+	if (ctx.msg?.from?.id !== conf.superadmin) {
 		return await ctx.reply('forbidden');
 	};
 	ctx.session.step = 'idle';
@@ -156,7 +143,7 @@ bot.command('myrecs', async (ctx) => {
 	}
 });
 
-bot.command('help', async (ctx) => {
+bot.command('info', async (ctx) => {
 	const helpInfoKb = new InlineKeyboard().text('Закрыть', 'closeHelpInfo');
 	await ctx.reply(txt.info, {
 		reply_markup: helpInfoKb,
@@ -449,8 +436,8 @@ async function main() {
 	await dbEnsureCollections();
 
 	await bot.api.setMyCommands([
-		{ command: 'enter', description: 'Записаться в очередь' },
-		{ command: 'myrecs', description: 'Мои записи' },
+		// { command: 'enter', description: 'Записаться в очередь' },
+		// { command: 'myrecs', description: 'Мои записи' },
 		// { command: 'dostavka', description: 'О доставк	е' },
 		{ command: 'start', description: 'Перезапуск бота' },
 		{ command: 'info', description: 'Справка' },

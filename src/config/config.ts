@@ -19,7 +19,7 @@ interface IConf {
 	mapZabName: string;
 	// channelId: number;
 	// channelChatId: number;
-	admin: number;
+	superadmin: number;
 	recordsChannel: number;
 	// allowAll: boolean;
 	// allowedUsers: number[];
@@ -41,7 +41,7 @@ const conf: IConf = {
 	mapZabName: process.env.MAP_ZAB_NAME as string,
 	// channelId: Number(process.env.CHANNEL_ID),
 	// channelChatId: Number(process.env.CHANNEL_CHAT_ID),
-	admin: Number(process.env.ADMIN),
+	superadmin: Number(process.env.SUPERADMIN),
 	recordsChannel: Number(process.env.RECORDS_CHANNEL),
 	// allowAll: Boolean(Number(process.env.ALLOW_ALL)),
 	// allowedUsers: JSON.parse(process.env.ALLOWED_USERS as string) as number[],
