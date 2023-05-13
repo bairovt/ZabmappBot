@@ -56,16 +56,19 @@ bot.command('sendall', async (ctx) => {
 	// 	});
 	// });
 	// await Promise.all(allUsersSend);
+	let counter =  0;
 	for (let user of allUsers) {
 		if (blUserIds.includes(user.id)) continue;
 		try {
 			await ctx.api.sendMessage(user.id, sendMsg, {
 				parse_mode: 'HTML',
 			});
+			counter++;
 		} catch (error) {
 			console.log(error);
 		}
 	}
+	console.log('sendall', counter);
 });
 
 bot.command('find', async (ctx) => {
@@ -432,8 +435,8 @@ bot.catch(async (err) => {
 });
 
 async function main() {
-	await dbEnsureIndexes();
 	await dbEnsureCollections();
+	await dbEnsureIndexes();
 
 	await bot.api.setMyCommands([
 		// { command: 'enter', description: 'Записаться в очередь' },
