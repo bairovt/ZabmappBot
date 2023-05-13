@@ -116,35 +116,35 @@ bot.command('delete', async (ctx) => {
 	return await ctx.reply(truckNumber + ' deleted');
 });
 
-bot.command('enter', async (ctx) => {
-	await User.start(ctx, ctx.msg?.from as TUser);
-	ctx.session.record.mapp = 'Zab';
+// bot.command('enter', async (ctx) => {
+// 	await User.start(ctx, ctx.msg?.from as TUser);
+// 	ctx.session.record.mapp = 'Zab';
 
-	const usersRecords = await Record.findAllMyRecords(ctx.from?.id as number); // todo: check if id exists
+// 	const usersRecords = await Record.findAllMyRecords(ctx.from?.id as number); // todo: check if id exists
 
-	if (usersRecords.length >= 5) {
-		return ctx.reply(txt.limit, {
-			reply_markup: { remove_keyboard: true },
-		});
-	}
+// 	if (usersRecords.length >= 5) {
+// 		return ctx.reply(txt.limit, {
+// 			reply_markup: { remove_keyboard: true },
+// 		});
+// 	}
 
-	ctx.session.step = 'truck';
-	await ctx.reply(txt.set_truck, { reply_markup: {remove_keyboard: true}, parse_mode: 'HTML' });
-});
+// 	ctx.session.step = 'truck';
+// 	await ctx.reply(txt.set_truck, { reply_markup: {remove_keyboard: true}, parse_mode: 'HTML' });
+// });
 
-bot.command('myrecs', async (ctx) => {
-	ctx.session.step = 'idle';
-	const records = await Record.findAllMyRecords(ctx.from?.id as number); // todo: check if id exists
-	if (!records.length) return await ctx.reply(txt.no_records);
-	for (const record of records) {
-		const recordKb = getRecordKb(record._key as string);
-		const info = await recordInfo(record);
-		await ctx.reply(info, {
-			reply_markup: recordKb,
-			parse_mode: 'HTML',
-		});
-	}
-});
+// bot.command('myrecs', async (ctx) => {
+// 	ctx.session.step = 'idle';
+// 	const records = await Record.findAllMyRecords(ctx.from?.id as number); // todo: check if id exists
+// 	if (!records.length) return await ctx.reply(txt.no_records);
+// 	for (const record of records) {
+// 		const recordKb = getRecordKb(record._key as string);
+// 		const info = await recordInfo(record);
+// 		await ctx.reply(info, {
+// 			reply_markup: recordKb,
+// 			parse_mode: 'HTML',
+// 		});
+// 	}
+// });
 
 bot.command('info', async (ctx) => {
 	const helpInfoKb = new InlineKeyboard().text('Закрыть', 'closeHelpInfo');
@@ -443,7 +443,7 @@ async function main() {
 		// { command: 'myrecs', description: 'Мои записи' },
 		// { command: 'dostavka', description: 'О доставк	е' },
 		{ command: 'start', description: 'Перезапуск бота' },
-		{ command: 'info', description: 'Справка' },
+		{ command: 'info', description: 'Информация' },
 	]);
 	// This will connect to the Telegram servers and wait for messages.
 	bot.start({
