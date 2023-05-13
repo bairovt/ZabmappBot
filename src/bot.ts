@@ -1,6 +1,6 @@
 import { Bot, GrammyError, HttpError, BotError, session } from 'grammy';
 import conf from './config/config';
-import { User, Log, Record, Mapps, db, dbEnsureIndexes, dbEnsureCollections, TMapp } from './models';
+import { User, BlackList, Log, Record, Mapps, db, dbEnsureIndexes, dbEnsureCollections, TMapp } from './models';
 import { User as TUser, Contact } from '@grammyjs/types';
 import {
 	recordInfo,
@@ -46,17 +46,30 @@ bot.command('sendall', async (ctx) => {
 	if (ctx.msg?.from?.id !== conf.admin) {
 		return await ctx.reply('forbidden');
 	};
-	ctx.session.step = 'idle';
+	const blUsers = await BlackList.getAll();
+	//@ts-ignore
+	const blUserIds = blUsers.map((user) => user.id);
+
 	const sendMsg = ctx.match;
 
 	const allUsers = await User.getAll();
 	//@ts-ignore
-	const allUsersSend = allUsers.map((user) => {
-		return ctx.api.sendMessage(user.id, sendMsg, {
-			parse_mode: 'HTML',
-		});
-	});
-	await Promise.all(allUsersSend);
+	// const allUsersSend = allUsers.map((user) => {
+	// 	return ctx.api.sendMessage(user.id, sendMsg, {
+	// 		parse_mode: 'HTML',
+	// 	});
+	// });
+	// await Promise.all(allUsersSend);
+	for (let user of allUsers) {
+		if (blUserIds.includes(user.id)) continue;
+		try {
+			await ctx.api.sendMessage(user.id, sendMsg, {
+				parse_mode: 'HTML',
+			});
+		} catch (error) {
+			console.log(error);
+		}
+	}
 });
 
 // TODO:
@@ -401,7 +414,7 @@ bot.use(async (ctx, next) => {
 	}
 
 	// todo: respond something
-	await db.collection('UnhandledUpdates').save({ update: ctx.update });
+	await db.collection('Unhandled').save({ update: ctx.update });
 	ctx.session.step = 'idle';
 	await ctx.reply(txt.info, {
 		reply_markup: { remove_keyboard: true },
@@ -411,7 +424,7 @@ bot.use(async (ctx, next) => {
 
 bot.catch(async (err) => {
 	try {
-		await db.collection('ErrorsLog').save(err);
+		await db.collection('Errors').save(err);
 
 		const ctx = err.ctx;
 		console.error(`Error while handling update ${ctx.update.update_id}:`);
@@ -445,7 +458,7 @@ async function main() {
 	// This will connect to the Telegram servers and wait for messages.
 	bot.start({
 		onStart: (botInfo) => console.log(`${botInfo.username} ran at ${new Date()}`),
-		allowed_updates: ['message', 'callback_query', 'channel_post'],
+		allowed_updates: ['message', 'callback_query'], //'channel_post'
 	});
 }
 

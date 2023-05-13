@@ -10,8 +10,7 @@ export const db = new Database({
 });
 
 export async function dbEnsureCollections(): Promise<void> {
-	// const expectedCollections = ['StsRecords', 'ZabRecords', 'ArchiveRecords', 'Users', 'Logs', 'UnhandledUpdates'];
-	const expectedCollections = ['Records', 'ArchiveRecords', 'Users', 'Logs', 'UnhandledUpdates', 'ErrorsLog'];
+	const expectedCollections = ['Records', 'ArchiveRecords', 'Users', 'Logs', 'Unhandled', 'Errors', 'BlackList'];
 	const collections = await db.listCollections();
 	const existingCollections = collections.map((collection) => collection.name);
 	const missingCollections = expectedCollections.filter((name) => !existingCollections.includes(name));
