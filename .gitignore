@@ -27,3 +27,5 @@ build/
 tmp/
 
 # npm lock files
+
+pm2.config.js

@@ -6,7 +6,7 @@ module.exports = {
     watch: false,
     instance_var: "INSTANCE_ID",
     env: {
-	NODE_ENV: "test",
+	NODE_ENV: "production",
 //	NODE_CONFIG_DIR: '/home/tumen/nodejs/omog-koa/config/',
 //	NODE_PATH: '/home/tumen/nodejs/omog-koa'
     },
